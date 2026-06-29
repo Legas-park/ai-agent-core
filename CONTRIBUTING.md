@@ -54,7 +54,7 @@ chore: requirements 버전 핀
 pytest tests/ -v
 ```
 
-새 기능에는 가능하면 테스트를 포함해 주세요. CI(GitHub Actions)에서 동일하게 실행됩니다.
+새 기능에는 가능하면 테스트를 포함해 주세요. `pytest tests/ -v`로 로컬에서 확인할 수 있습니다.
 
 ## 보안
 
