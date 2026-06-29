@@ -15,7 +15,7 @@
 |------|------|
 | **플러그인 아키텍처** | `services/plugins/`에 폴더만 추가하면 자동 로드 |
 | **저장소 추상화** | GitLab MR / GitHub PR을 동일 API로 처리 |
-| **LLM 레지스트리** | Gemini, OpenAI (Claude는 로드맵) |
+| **LLM 레지스트리** | Gemini, OpenAI, Anthropic (Claude) |
 | **웹훅 게이트웨이** | `POST /webhook/gateway` 단일 진입점 |
 | **설정 진단** | `GET /health` — 저장소·LLM 설정 상태 확인 |
 | **strict / lenient** | 운영(strict) vs 개발(lenient) 기동 정책 |
@@ -72,9 +72,10 @@ curl http://localhost:8000/health | python -m json.tool
 | `REPOSITORY_PROVIDER` | `gitlab` 또는 `github` |
 | `GITLAB_URL`, `GITLAB_TOKEN` | GitLab 연동 |
 | `GITHUB_BASE_URL`, `GITHUB_ACCESS_TOKEN` | GitHub 연동 |
-| `DEFAULT_LLM_PROVIDER` | `gemini` 또는 `openai` |
+| `DEFAULT_LLM_PROVIDER` | `gemini`, `openai`, `anthropic` |
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | Gemini |
 | `OPENAI_API_KEY`, `OPENAI_MODEL` | OpenAI |
+| `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | Anthropic (Claude) |
 | `WEBHOOK_SECRET` | 웹훅 검증 (비우면 검증 생략) |
 
 상세 가이드:
@@ -167,7 +168,7 @@ pytest tests/ -v
 - [x] 코어 프레임워크 + code_review 플러그인
 - [x] GitLab / GitHub 저장소 어댑터
 - [x] 설정 검증 + `/health`
-- [ ] LLM 카탈로그 제거 + Claude + fallback router
+- [ ] LLM fallback router (primary + fallback chain)
 - [ ] Docker Compose + PostgreSQL + Setup API
 - [ ] agent_task / agent_step_log 감사 DB
 - [ ] v0.1.0 public release

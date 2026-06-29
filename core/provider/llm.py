@@ -200,6 +200,74 @@ class OpenAIProvider(BaseLLMProvider):
             raise LLMError(f"OpenAI 응답 형식이 예상과 다릅니다: {json.dumps(data)[:300]}") from exc
 
 
+class AnthropicProvider(BaseLLMProvider):
+    """Anthropic Claude Messages API REST 클라이언트."""
+
+    name = "anthropic"
+    _ENDPOINT = "https://api.anthropic.com/v1/messages"
+    _API_VERSION = "2023-06-01"
+
+    def __init__(self, api_key: str, model: str, timeout: int = 60):
+        if not api_key:
+            raise ValueError("AnthropicProvider 초기화에 api_key가 필요합니다.")
+        if not model or not model.strip():
+            raise ValueError("AnthropicProvider 초기화에 model id가 필요합니다.")
+        self.api_key = api_key
+        self.model = model
+        self.timeout = timeout
+
+    @async_retry(max_attempts=3, retry_on=(requests.RequestException, LLMError))
+    async def complete(
+        self,
+        prompt: str,
+        *,
+        system: Optional[str] = None,
+        temperature: float = 0.2,
+        max_tokens: int = 2048,
+    ) -> str:
+        return await asyncio.to_thread(
+            self._complete_sync, prompt, system, temperature, max_tokens
+        )
+
+    def _complete_sync(
+        self, prompt: str, system: Optional[str], temperature: float, max_tokens: int
+    ) -> str:
+        body: Dict[str, Any] = {
+            "model": self.model,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "messages": [{"role": "user", "content": prompt}],
+        }
+        if system:
+            body["system"] = system
+
+        resp = requests.post(
+            self._ENDPOINT,
+            headers={
+                "x-api-key": self.api_key,
+                "anthropic-version": self._API_VERSION,
+                "Content-Type": "application/json",
+            },
+            json=body,
+            timeout=self.timeout,
+        )
+        if resp.status_code >= 500 or resp.status_code == 429:
+            raise LLMError(f"Anthropic 일시 오류 {resp.status_code}: {resp.text[:200]}")
+        if resp.status_code >= 400:
+            raise LLMError(f"Anthropic 호출 실패 {resp.status_code}: {resp.text[:300]}")
+
+        data = resp.json()
+        try:
+            for block in data["content"]:
+                if block.get("type") == "text" and block.get("text"):
+                    return block["text"]
+            raise KeyError("text block")
+        except (KeyError, IndexError, TypeError) as exc:
+            raise LLMError(
+                f"Anthropic 응답 형식이 예상과 다릅니다: {json.dumps(data)[:300]}"
+            ) from exc
+
+
 def build_providers_from_settings(settings) -> Dict[str, BaseLLMProvider]:
     """
     설정값을 읽어 선택된 LLM 프로바이더(default_llm_provider)의 API 키가 있을 때
@@ -218,6 +286,13 @@ def build_providers_from_settings(settings) -> Dict[str, BaseLLMProvider]:
         if model:
             providers["openai"] = OpenAIProvider(api_key=settings.openai_api_key, model=model)
             logger.info(f"OpenAI 프로바이더 구성 완료 (model={model})")
+    elif default_provider == "anthropic" and getattr(settings, "anthropic_api_key", ""):
+        model = getattr(settings, "anthropic_model", "").strip()
+        if model:
+            providers["anthropic"] = AnthropicProvider(
+                api_key=settings.anthropic_api_key, model=model
+            )
+            logger.info(f"Anthropic 프로바이더 구성 완료 (model={model})")
 
     if not providers:
         logger.warning(
