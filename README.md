@@ -146,7 +146,7 @@ ai-agent-core/
 pytest tests/ -v
 ```
 
-CI: GitHub Actions (`.github/workflows/test.yml`) — push/PR 시 Python 3.9, 3.11에서 실행
+CI: GitHub Actions (`.github/workflows/ci.yml`) — push/PR 시 Python 3.9, 3.11에서 실행
 
 ---
 
