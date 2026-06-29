@@ -1,7 +1,8 @@
 """
 LLM 프로바이더 설정 검증.
 
-선택한 DEFAULT_LLM_PROVIDER에 맞는 API 키·모델명이 준비되었는지 확인합니다.
+선택한 DEFAULT_LLM_PROVIDER에 맞는 API 키·모델 ID가 준비되었는지 확인합니다.
+모델 ID는 공급자 문서 기준 사용자 자유 입력입니다.
 """
 from __future__ import annotations
 
@@ -9,10 +10,10 @@ from dataclasses import dataclass, field
 from typing import List, Literal, TYPE_CHECKING
 
 from core.provider.models import (
-    LLM_MODEL_CATALOG,
     api_key_field_for_provider,
-    get_models_for_provider,
-    is_supported_model,
+    is_valid_model_id,
+    model_doc_url_for_provider,
+    model_field_for_provider,
 )
 
 if TYPE_CHECKING:
@@ -32,7 +33,7 @@ class LLMConfigStatus:
     model: str
     configured: bool
     missing_fields: List[str] = field(default_factory=list)
-    supported_models: List[str] = field(default_factory=list)
+    model_doc_url: str = ""
     startup_mode: StartupMode = "lenient"
     setup_guide: str = LLM_SETUP_GUIDE
 
@@ -63,24 +64,23 @@ def check_llm_config(settings: Settings) -> LLMConfigStatus:
     provider: LLMProviderName = settings.default_llm_provider  # type: ignore[assignment]
     startup_mode: StartupMode = settings.startup_mode  # type: ignore[assignment]
     model = _model_for_provider(settings, provider)
+    model_field = model_field_for_provider(provider)
+    doc_url = model_doc_url_for_provider(provider)
     missing: List[str] = []
 
     if not _api_key_for_provider(settings, provider):
         missing.append(api_key_field_for_provider(provider))
     if not model:
-        missing.append("GEMINI_MODEL" if provider == "gemini" else "OPENAI_MODEL")
-    elif not is_supported_model(provider, model):
-        missing.append(
-            f"{'GEMINI_MODEL' if provider == 'gemini' else 'OPENAI_MODEL'}"
-            f"(지원 목록: {', '.join(get_models_for_provider(provider))})"
-        )
+        missing.append(model_field)
+    elif not is_valid_model_id(model):
+        missing.append(f"{model_field}(공급자 문서의 model id를 입력하세요: {doc_url})")
 
     return LLMConfigStatus(
         provider=provider,
         model=model,
         configured=len(missing) == 0,
         missing_fields=missing,
-        supported_models=get_models_for_provider(provider),
+        model_doc_url=doc_url,
         startup_mode=startup_mode,
         setup_guide=LLM_SETUP_GUIDE,
     )
