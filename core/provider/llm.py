@@ -138,6 +138,87 @@ class GeminiProvider(BaseLLMProvider):
             raise LLMError(f"Gemini 응답 형식이 예상과 다릅니다: {json.dumps(data)[:300]}") from exc
 
 
+class OpenAICompatibleProvider(BaseLLMProvider):
+    """
+    OpenAI Chat Completions 호환 REST 클라이언트.
+
+    Ollama, vLLM, LM Studio 등 로컬/자체 호스팅 LLM 서버에 사용합니다.
+    """
+
+    def __init__(
+        self,
+        api_key: str,
+        model: str,
+        base_url: str,
+        *,
+        provider_name: str = "openai_compatible",
+        timeout: int = 60,
+    ):
+        if not model or not model.strip():
+            raise ValueError("OpenAICompatibleProvider 초기화에 model id가 필요합니다.")
+        if not base_url or not base_url.strip():
+            raise ValueError("OpenAICompatibleProvider 초기화에 base_url이 필요합니다.")
+        self.api_key = api_key.strip()
+        self.model = model.strip()
+        self.name = provider_name
+        self.timeout = timeout
+        normalized = base_url.strip().rstrip("/")
+        if normalized.endswith("/v1"):
+            self._endpoint = f"{normalized}/chat/completions"
+        else:
+            self._endpoint = f"{normalized}/v1/chat/completions"
+
+    @async_retry(max_attempts=3, retry_on=(requests.RequestException, LLMError))
+    async def complete(
+        self,
+        prompt: str,
+        *,
+        system: Optional[str] = None,
+        temperature: float = 0.2,
+        max_tokens: int = 2048,
+    ) -> str:
+        return await asyncio.to_thread(
+            self._complete_sync, prompt, system, temperature, max_tokens
+        )
+
+    def _complete_sync(
+        self, prompt: str, system: Optional[str], temperature: float, max_tokens: int
+    ) -> str:
+        messages: List[Dict[str, str]] = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
+        resp = requests.post(
+            self._endpoint,
+            headers=headers,
+            json={
+                "model": self.model,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+            },
+            timeout=self.timeout,
+        )
+        label = self.name
+        if resp.status_code >= 500 or resp.status_code == 429:
+            raise LLMError(f"{label} 일시 오류 {resp.status_code}: {resp.text[:200]}")
+        if resp.status_code >= 400:
+            raise LLMError(f"{label} 호출 실패 {resp.status_code}: {resp.text[:300]}")
+
+        data = resp.json()
+        try:
+            return data["choices"][0]["message"]["content"]
+        except (KeyError, IndexError) as exc:
+            raise LLMError(
+                f"{label} 응답 형식이 예상과 다릅니다: {json.dumps(data)[:300]}"
+            ) from exc
+
+
 class OpenAIProvider(BaseLLMProvider):
     """OpenAI Chat Completions 호환 REST 클라이언트."""
 
@@ -268,35 +349,85 @@ class AnthropicProvider(BaseLLMProvider):
             ) from exc
 
 
+def parse_llm_fallback_chain(primary: str, fallback_csv: str) -> List[str]:
+    """primary + LLM_FALLBACK_PROVIDERS 순서로 중복 없는 chain 이름 목록을 만듭니다."""
+    chain: List[str] = []
+    if primary:
+        chain.append(primary.strip())
+    for part in fallback_csv.split(","):
+        name = part.strip()
+        if name and name not in chain:
+            chain.append(name)
+    return chain
+
+
+def build_all_providers_from_settings(settings) -> Dict[str, BaseLLMProvider]:
+    """설정된 모든 LLM 공급자를 조립합니다 (primary/fallback 공통)."""
+    providers: Dict[str, BaseLLMProvider] = {}
+
+    if getattr(settings, "gemini_api_key", "").strip() and getattr(settings, "gemini_model", "").strip():
+        model = settings.gemini_model.strip()
+        providers["gemini"] = GeminiProvider(api_key=settings.gemini_api_key, model=model)
+        logger.info(f"Gemini 프로바이더 등록 (model={model})")
+
+    if getattr(settings, "openai_api_key", "").strip() and getattr(settings, "openai_model", "").strip():
+        model = settings.openai_model.strip()
+        providers["openai"] = OpenAIProvider(api_key=settings.openai_api_key, model=model)
+        logger.info(f"OpenAI 프로바이더 등록 (model={model})")
+
+    if getattr(settings, "anthropic_api_key", "").strip() and getattr(settings, "anthropic_model", "").strip():
+        model = settings.anthropic_model.strip()
+        providers["anthropic"] = AnthropicProvider(
+            api_key=settings.anthropic_api_key, model=model
+        )
+        logger.info(f"Anthropic 프로바이더 등록 (model={model})")
+
+    local_base = getattr(settings, "local_llm_base_url", "").strip()
+    local_model = getattr(settings, "local_llm_model", "").strip()
+    if local_base and local_model:
+        providers["local"] = OpenAICompatibleProvider(
+            api_key=getattr(settings, "local_llm_api_key", ""),
+            model=local_model,
+            base_url=local_base,
+            provider_name="local",
+        )
+        logger.info(f"Local LLM 프로바이더 등록 (model={local_model}, base={local_base})")
+
+    return providers
+
+
+def build_llm_router_from_settings(settings, providers: Dict[str, BaseLLMProvider]):
+    """primary + fallback chain으로 LLMRouter를 만듭니다."""
+    from core.provider.router import LLMRouter
+
+    chain_names = parse_llm_fallback_chain(
+        settings.default_llm_provider,
+        getattr(settings, "llm_fallback_providers", ""),
+    )
+    chain = []
+    resolved_names: List[str] = []
+    for name in chain_names:
+        provider = providers.get(name)
+        if provider is not None:
+            chain.append(provider)
+            resolved_names.append(name)
+
+    if not chain:
+        return None
+
+    if len(chain) == 1:
+        return chain[0]
+
+    logger.info(f"LLM fallback chain: {' → '.join(resolved_names)}")
+    return LLMRouter(chain, resolved_names)
+
+
 def build_providers_from_settings(settings) -> Dict[str, BaseLLMProvider]:
     """
-    설정값을 읽어 선택된 LLM 프로바이더(default_llm_provider)의 API 키가 있을 때
-    해당 클라이언트를 조립합니다. 키가 없으면 빈 dict를 반환합니다.
+    하위 호환: 선택 primary 공급자만 반환 (deprecated — build_all_providers_from_settings 사용).
     """
-    providers: Dict[str, BaseLLMProvider] = {}
-    default_provider = getattr(settings, "default_llm_provider", "gemini")
-
-    if default_provider == "gemini" and getattr(settings, "gemini_api_key", ""):
-        model = getattr(settings, "gemini_model", "").strip()
-        if model:
-            providers["gemini"] = GeminiProvider(api_key=settings.gemini_api_key, model=model)
-            logger.info(f"Gemini 프로바이더 구성 완료 (model={model})")
-    elif default_provider == "openai" and getattr(settings, "openai_api_key", ""):
-        model = getattr(settings, "openai_model", "").strip()
-        if model:
-            providers["openai"] = OpenAIProvider(api_key=settings.openai_api_key, model=model)
-            logger.info(f"OpenAI 프로바이더 구성 완료 (model={model})")
-    elif default_provider == "anthropic" and getattr(settings, "anthropic_api_key", ""):
-        model = getattr(settings, "anthropic_model", "").strip()
-        if model:
-            providers["anthropic"] = AnthropicProvider(
-                api_key=settings.anthropic_api_key, model=model
-            )
-            logger.info(f"Anthropic 프로바이더 구성 완료 (model={model})")
-
-    if not providers:
-        logger.warning(
-            f"선택 LLM({default_provider}) API 키 미설정 — 에이전트 LLM 단계는 드라이런됩니다. "
-            f"가이드: docs/setup/llm_provider_guide.md"
-        )
-    return providers
+    all_providers = build_all_providers_from_settings(settings)
+    primary = getattr(settings, "default_llm_provider", "gemini")
+    if primary in all_providers:
+        return {primary: all_providers[primary]}
+    return {}

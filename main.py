@@ -7,7 +7,7 @@ from loguru import logger
 from config import settings
 from core.plugin_manager import plugin_manager
 from core.provider.registry import llm_registry
-from core.provider.llm import build_providers_from_settings
+from core.provider.llm import build_all_providers_from_settings, build_llm_router_from_settings
 from core.integrations.registry import integration_registry
 from core.integrations.gitlab_client import build_gitlab_client
 from core.services.registry import service_registry
@@ -27,9 +27,21 @@ async def lifespan(app: FastAPI):
     assert_repository_startup(settings)
     assert_llm_startup(settings)
 
-    for name, provider in build_providers_from_settings(settings).items():
+    all_providers = build_all_providers_from_settings(settings)
+    for name, provider in all_providers.items():
         llm_registry.register_provider(name, provider)
-    llm_registry.set_default(settings.default_llm_provider)
+
+    router = build_llm_router_from_settings(settings, all_providers)
+    if router is not None:
+        llm_registry.register_provider("router", router)
+        llm_registry.set_default("router")
+    elif all_providers:
+        llm_registry.set_default(settings.default_llm_provider)
+    else:
+        logger.warning(
+            "LLM 프로바이더 미구성 — 에이전트 LLM 단계는 드라이런됩니다. "
+            "가이드: docs/setup/llm_provider_guide.md"
+        )
 
     repository = build_repository_service(settings)
     service_registry.register("repository", repository)
@@ -79,6 +91,7 @@ async def health_check():
         "llm_configured": llm_status.configured,
         "llm_missing_fields": llm_status.missing_fields,
         "llm_model_doc_url": llm_status.model_doc_url,
+        "llm_fallback_chain": llm_status.fallback_chain,
         "llm_setup_guide": llm_status.setup_guide,
     }
 
