@@ -6,12 +6,13 @@ LLM 공급자 메타데이터.
 """
 from typing import Dict, Literal
 
-LLMProviderName = Literal["gemini", "openai"]
+LLMProviderName = Literal["gemini", "openai", "anthropic"]
 
 # 공급자별 model id 참고 문서 (목록·추천 모델 아님)
 LLM_MODEL_DOC_URLS: Dict[LLMProviderName, str] = {
     "gemini": "https://ai.google.dev/gemini-api/docs/models",
     "openai": "https://platform.openai.com/docs/models",
+    "anthropic": "https://docs.anthropic.com/en/docs/about-claude/models/overview",
 }
 
 
@@ -20,6 +21,7 @@ def api_key_field_for_provider(provider: str) -> str:
     mapping = {
         "gemini": "GEMINI_API_KEY",
         "openai": "OPENAI_API_KEY",
+        "anthropic": "ANTHROPIC_API_KEY",
     }
     return mapping.get(provider, "LLM_API_KEY")
 
@@ -29,6 +31,7 @@ def model_field_for_provider(provider: str) -> str:
     mapping = {
         "gemini": "GEMINI_MODEL",
         "openai": "OPENAI_MODEL",
+        "anthropic": "ANTHROPIC_MODEL",
     }
     return mapping.get(provider, "LLM_MODEL")
 

@@ -21,8 +21,20 @@ if TYPE_CHECKING:
 
 LLM_SETUP_GUIDE = "docs/setup/llm_provider_guide.md"
 
-LLMProviderName = Literal["gemini", "openai"]
+LLMProviderName = Literal["gemini", "openai", "anthropic"]
 StartupMode = Literal["lenient", "strict"]
+
+_PROVIDER_API_KEY_ATTR = {
+    "gemini": "gemini_api_key",
+    "openai": "openai_api_key",
+    "anthropic": "anthropic_api_key",
+}
+
+_PROVIDER_MODEL_ATTR = {
+    "gemini": "gemini_model",
+    "openai": "openai_model",
+    "anthropic": "anthropic_model",
+}
 
 
 @dataclass
@@ -48,15 +60,13 @@ class LLMConfigStatus:
 
 
 def _api_key_for_provider(settings: Settings, provider: LLMProviderName) -> str:
-    if provider == "gemini":
-        return settings.gemini_api_key.strip()
-    return settings.openai_api_key.strip()
+    attr = _PROVIDER_API_KEY_ATTR[provider]
+    return getattr(settings, attr, "").strip()
 
 
 def _model_for_provider(settings: Settings, provider: LLMProviderName) -> str:
-    if provider == "gemini":
-        return settings.gemini_model.strip()
-    return settings.openai_model.strip()
+    attr = _PROVIDER_MODEL_ATTR[provider]
+    return getattr(settings, attr, "").strip()
 
 
 def check_llm_config(settings: Settings) -> LLMConfigStatus:

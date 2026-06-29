@@ -26,11 +26,13 @@ class Settings(BaseSettings):
     github_access_token: str = ""
     github_default_repo: str = ""
 
-    default_llm_provider: Literal["gemini", "openai"] = "gemini"
+    default_llm_provider: Literal["gemini", "openai", "anthropic"] = "gemini"
     gemini_api_key: str = ""
     openai_api_key: str = ""
+    anthropic_api_key: str = ""
     gemini_model: str = ""
     openai_model: str = ""
+    anthropic_model: str = ""
 
     plugins_dir: str = "services/plugins"
 
@@ -57,7 +59,7 @@ class Settings(BaseSettings):
             return value.strip().lower()
         return value
 
-    @field_validator("gemini_model", "openai_model", mode="before")
+    @field_validator("gemini_model", "openai_model", "anthropic_model", mode="before")
     @classmethod
     def strip_model_name(cls, value):
         if isinstance(value, str):
