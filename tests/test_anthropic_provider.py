@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from config import Settings
-from core.provider.llm import AnthropicProvider, build_providers_from_settings
+from core.provider.llm import AnthropicProvider, build_all_providers_from_settings
 from core.setup.llm import check_llm_config
 
 
@@ -44,7 +44,7 @@ def test_build_providers_registers_anthropic():
         anthropic_api_key="sk-ant-test",
         anthropic_model="claude-sonnet-4-20250514",
     )
-    providers = build_providers_from_settings(settings)
+    providers = build_all_providers_from_settings(settings)
     assert "anthropic" in providers
     assert providers["anthropic"].model == "claude-sonnet-4-20250514"
 

@@ -26,13 +26,17 @@ class Settings(BaseSettings):
     github_access_token: str = ""
     github_default_repo: str = ""
 
-    default_llm_provider: Literal["gemini", "openai", "anthropic"] = "gemini"
+    default_llm_provider: Literal["gemini", "openai", "anthropic", "local"] = "gemini"
+    llm_fallback_providers: str = ""
     gemini_api_key: str = ""
     openai_api_key: str = ""
     anthropic_api_key: str = ""
     gemini_model: str = ""
     openai_model: str = ""
     anthropic_model: str = ""
+    local_llm_base_url: str = ""
+    local_llm_api_key: str = ""
+    local_llm_model: str = ""
 
     plugins_dir: str = "services/plugins"
 
@@ -59,9 +63,25 @@ class Settings(BaseSettings):
             return value.strip().lower()
         return value
 
-    @field_validator("gemini_model", "openai_model", "anthropic_model", mode="before")
+    @field_validator("gemini_model", "openai_model", "anthropic_model", "local_llm_model", mode="before")
     @classmethod
     def strip_model_name(cls, value):
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+    @field_validator("local_llm_base_url", mode="before")
+    @classmethod
+    def strip_local_base_url(cls, value):
+        if isinstance(value, str):
+            return value.strip().rstrip("/")
+        return value
+
+    @field_validator("llm_fallback_providers", mode="before")
+    @classmethod
+    def normalize_fallback_providers(cls, value):
+        if value is None:
+            return ""
         if isinstance(value, str):
             return value.strip()
         return value

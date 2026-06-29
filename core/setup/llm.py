@@ -9,8 +9,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import List, Literal, TYPE_CHECKING
 
+from core.provider.llm import parse_llm_fallback_chain
 from core.provider.models import (
     api_key_field_for_provider,
+    base_url_field_for_provider,
     is_valid_model_id,
     model_doc_url_for_provider,
     model_field_for_provider,
@@ -21,19 +23,21 @@ if TYPE_CHECKING:
 
 LLM_SETUP_GUIDE = "docs/setup/llm_provider_guide.md"
 
-LLMProviderName = Literal["gemini", "openai", "anthropic"]
+LLMProviderName = Literal["gemini", "openai", "anthropic", "local"]
 StartupMode = Literal["lenient", "strict"]
 
 _PROVIDER_API_KEY_ATTR = {
     "gemini": "gemini_api_key",
     "openai": "openai_api_key",
     "anthropic": "anthropic_api_key",
+    "local": "local_llm_api_key",
 }
 
 _PROVIDER_MODEL_ATTR = {
     "gemini": "gemini_model",
     "openai": "openai_model",
     "anthropic": "anthropic_model",
+    "local": "local_llm_model",
 }
 
 
@@ -46,6 +50,7 @@ class LLMConfigStatus:
     configured: bool
     missing_fields: List[str] = field(default_factory=list)
     model_doc_url: str = ""
+    fallback_chain: List[str] = field(default_factory=list)
     startup_mode: StartupMode = "lenient"
     setup_guide: str = LLM_SETUP_GUIDE
 
@@ -76,10 +81,18 @@ def check_llm_config(settings: Settings) -> LLMConfigStatus:
     model = _model_for_provider(settings, provider)
     model_field = model_field_for_provider(provider)
     doc_url = model_doc_url_for_provider(provider)
+    fallback_chain = parse_llm_fallback_chain(
+        settings.default_llm_provider,
+        settings.llm_fallback_providers,
+    )
     missing: List[str] = []
 
-    if not _api_key_for_provider(settings, provider):
+    if provider == "local":
+        if not settings.local_llm_base_url.strip():
+            missing.append(base_url_field_for_provider("local"))
+    elif not _api_key_for_provider(settings, provider):
         missing.append(api_key_field_for_provider(provider))
+
     if not model:
         missing.append(model_field)
     elif not is_valid_model_id(model):
@@ -91,6 +104,7 @@ def check_llm_config(settings: Settings) -> LLMConfigStatus:
         configured=len(missing) == 0,
         missing_fields=missing,
         model_doc_url=doc_url,
+        fallback_chain=fallback_chain,
         startup_mode=startup_mode,
         setup_guide=LLM_SETUP_GUIDE,
     )

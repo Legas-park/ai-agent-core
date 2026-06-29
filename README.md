@@ -15,7 +15,7 @@
 |------|------|
 | **플러그인 아키텍처** | `services/plugins/`에 폴더만 추가하면 자동 로드 |
 | **저장소 추상화** | GitLab MR / GitHub PR을 동일 API로 처리 |
-| **LLM 레지스트리** | Gemini, OpenAI, Anthropic (Claude) |
+| **LLM 레지스트리** | Gemini, OpenAI, Anthropic, Local(Ollama 등) + fallback router |
 | **웹훅 게이트웨이** | `POST /webhook/gateway` 단일 진입점 |
 | **설정 진단** | `GET /health` — 저장소·LLM 설정 상태 확인 |
 | **strict / lenient** | 운영(strict) vs 개발(lenient) 기동 정책 |
@@ -72,10 +72,12 @@ curl http://localhost:8000/health | python -m json.tool
 | `REPOSITORY_PROVIDER` | `gitlab` 또는 `github` |
 | `GITLAB_URL`, `GITLAB_TOKEN` | GitLab 연동 |
 | `GITHUB_BASE_URL`, `GITHUB_ACCESS_TOKEN` | GitHub 연동 |
-| `DEFAULT_LLM_PROVIDER` | `gemini`, `openai`, `anthropic` |
+| `DEFAULT_LLM_PROVIDER` | `gemini`, `openai`, `anthropic`, `local` |
+| `LLM_FALLBACK_PROVIDERS` | primary 실패 시 순서 (예: `gemini,local`) |
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | Gemini |
 | `OPENAI_API_KEY`, `OPENAI_MODEL` | OpenAI |
 | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | Anthropic (Claude) |
+| `LOCAL_LLM_BASE_URL`, `LOCAL_LLM_MODEL` | Local LLM (Ollama/vLLM, 예: qwen3.5) |
 | `WEBHOOK_SECRET` | 웹훅 검증 (비우면 검증 생략) |
 
 상세 가이드:
@@ -168,7 +170,8 @@ pytest tests/ -v
 - [x] 코어 프레임워크 + code_review 플러그인
 - [x] GitLab / GitHub 저장소 어댑터
 - [x] 설정 검증 + `/health`
-- [ ] LLM fallback router (primary + fallback chain)
+- [x] LLM fallback router (primary + fallback chain)
+- [x] Local LLM (Ollama OpenAI 호환 API)
 - [ ] Docker Compose + PostgreSQL + Setup API
 - [ ] agent_task / agent_step_log 감사 DB
 - [ ] v0.1.0 public release

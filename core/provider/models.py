@@ -6,13 +6,14 @@ LLM 공급자 메타데이터.
 """
 from typing import Dict, Literal
 
-LLMProviderName = Literal["gemini", "openai", "anthropic"]
+LLMProviderName = Literal["gemini", "openai", "anthropic", "local"]
 
 # 공급자별 model id 참고 문서 (목록·추천 모델 아님)
 LLM_MODEL_DOC_URLS: Dict[LLMProviderName, str] = {
     "gemini": "https://ai.google.dev/gemini-api/docs/models",
     "openai": "https://platform.openai.com/docs/models",
     "anthropic": "https://docs.anthropic.com/en/docs/about-claude/models/overview",
+    "local": "https://ollama.com/library",
 }
 
 
@@ -22,6 +23,7 @@ def api_key_field_for_provider(provider: str) -> str:
         "gemini": "GEMINI_API_KEY",
         "openai": "OPENAI_API_KEY",
         "anthropic": "ANTHROPIC_API_KEY",
+        "local": "LOCAL_LLM_API_KEY",
     }
     return mapping.get(provider, "LLM_API_KEY")
 
@@ -32,8 +34,16 @@ def model_field_for_provider(provider: str) -> str:
         "gemini": "GEMINI_MODEL",
         "openai": "OPENAI_MODEL",
         "anthropic": "ANTHROPIC_MODEL",
+        "local": "LOCAL_LLM_MODEL",
     }
     return mapping.get(provider, "LLM_MODEL")
+
+
+def base_url_field_for_provider(provider: str) -> str:
+    """로컬/OpenAI 호환 서버 base URL env 변수명."""
+    if provider == "local":
+        return "LOCAL_LLM_BASE_URL"
+    return ""
 
 
 def model_doc_url_for_provider(provider: str) -> str:
