@@ -8,7 +8,6 @@ from config import settings
 from core.plugin_manager import plugin_manager
 from core.provider.registry import llm_registry
 from core.provider.llm import build_providers_from_settings
-from core.provider.models import LLM_MODEL_CATALOG
 from core.integrations.registry import integration_registry
 from core.integrations.gitlab_client import build_gitlab_client
 from core.services.registry import service_registry
@@ -79,9 +78,8 @@ async def health_check():
         "llm_model": llm_status.model,
         "llm_configured": llm_status.configured,
         "llm_missing_fields": llm_status.missing_fields,
-        "llm_supported_models": llm_status.supported_models,
+        "llm_model_doc_url": llm_status.model_doc_url,
         "llm_setup_guide": llm_status.setup_guide,
-        "llm_model_catalog": LLM_MODEL_CATALOG,
     }
 
 
