@@ -14,6 +14,10 @@ class Settings(BaseSettings):
 
     startup_mode: Literal["lenient", "strict"] = "lenient"
 
+    # DB 부트스트랩 (연동 설정 본문은 DB + Setup API — Phase 3~4)
+    database_url: str = ""
+    config_encryption_key: str = ""
+
     webhook_secret: str = ""
 
     repository_provider: Literal["gitlab", "github"] = "gitlab"

@@ -84,6 +84,7 @@ curl http://localhost:8000/health | python -m json.tool
 
 - [저장소 설정 (GitLab / GitHub)](docs/setup/repository_provider_guide.md)
 - [LLM 설정](docs/setup/llm_provider_guide.md)
+- [Docker 설치](docs/setup/installation_guide.md)
 
 > **로드맵**: Docker Compose + PostgreSQL + Setup API로 설정을 DB에 저장하는 기능을 개발 중입니다.
 
@@ -172,6 +173,7 @@ pytest tests/ -v
 - [x] 설정 검증 + `/health`
 - [x] LLM fallback router (primary + fallback chain)
 - [x] Local LLM (Ollama OpenAI 호환 API)
+- [x] Docker + Postgres + DB 스키마 (Setup API 연동은 다음 단계)
 - [ ] Docker Compose + PostgreSQL + Setup API
 - [ ] agent_task / agent_step_log 감사 DB
 - [ ] v0.1.0 public release
