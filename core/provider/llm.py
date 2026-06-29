@@ -6,7 +6,6 @@ from typing import Any, Dict, List, Optional
 import requests
 from loguru import logger
 
-from core.provider.models import LLM_DEFAULT_MODELS
 from core.utils.retry import async_retry
 
 
@@ -84,9 +83,11 @@ class GeminiProvider(BaseLLMProvider):
     name = "gemini"
     _ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
-    def __init__(self, api_key: str, model: str = LLM_DEFAULT_MODELS["gemini"], timeout: int = 60):
+    def __init__(self, api_key: str, model: str, timeout: int = 60):
         if not api_key:
             raise ValueError("GeminiProvider 초기화에 api_key가 필요합니다.")
+        if not model or not model.strip():
+            raise ValueError("GeminiProvider 초기화에 model id가 필요합니다.")
         self.api_key = api_key
         self.model = model
         self.timeout = timeout
@@ -143,9 +144,11 @@ class OpenAIProvider(BaseLLMProvider):
     name = "openai"
     _ENDPOINT = "https://api.openai.com/v1/chat/completions"
 
-    def __init__(self, api_key: str, model: str = LLM_DEFAULT_MODELS["openai"], timeout: int = 60):
+    def __init__(self, api_key: str, model: str, timeout: int = 60):
         if not api_key:
             raise ValueError("OpenAIProvider 초기화에 api_key가 필요합니다.")
+        if not model or not model.strip():
+            raise ValueError("OpenAIProvider 초기화에 model id가 필요합니다.")
         self.api_key = api_key
         self.model = model
         self.timeout = timeout
@@ -206,13 +209,15 @@ def build_providers_from_settings(settings) -> Dict[str, BaseLLMProvider]:
     default_provider = getattr(settings, "default_llm_provider", "gemini")
 
     if default_provider == "gemini" and getattr(settings, "gemini_api_key", ""):
-        model = getattr(settings, "gemini_model", LLM_DEFAULT_MODELS["gemini"])
-        providers["gemini"] = GeminiProvider(api_key=settings.gemini_api_key, model=model)
-        logger.info(f"Gemini 프로바이더 구성 완료 (model={model})")
+        model = getattr(settings, "gemini_model", "").strip()
+        if model:
+            providers["gemini"] = GeminiProvider(api_key=settings.gemini_api_key, model=model)
+            logger.info(f"Gemini 프로바이더 구성 완료 (model={model})")
     elif default_provider == "openai" and getattr(settings, "openai_api_key", ""):
-        model = getattr(settings, "openai_model", LLM_DEFAULT_MODELS["openai"])
-        providers["openai"] = OpenAIProvider(api_key=settings.openai_api_key, model=model)
-        logger.info(f"OpenAI 프로바이더 구성 완료 (model={model})")
+        model = getattr(settings, "openai_model", "").strip()
+        if model:
+            providers["openai"] = OpenAIProvider(api_key=settings.openai_api_key, model=model)
+            logger.info(f"OpenAI 프로바이더 구성 완료 (model={model})")
 
     if not providers:
         logger.warning(

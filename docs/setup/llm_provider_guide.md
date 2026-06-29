@@ -15,12 +15,12 @@ DEFAULT_LLM_PROVIDER=gemini  # 또는 openai
 
 # Gemini 선택 시
 GEMINI_API_KEY=your-key
-GEMINI_MODEL=gemini-2.0-flash
+GEMINI_MODEL=<공급자-문서의-model-id>
 
 # OpenAI 선택 시
 # DEFAULT_LLM_PROVIDER=openai
 # OPENAI_API_KEY=sk-...
-# OPENAI_MODEL=gpt-4o-mini
+# OPENAI_MODEL=<공급자-문서의-model-id>
 ```
 
 기동 후 확인:
@@ -41,7 +41,7 @@ curl http://localhost:8000/health
 |------|------|
 | **API 키 발급** | [Google AI Studio](https://aistudio.google.com/apikey) → API key 생성 → `GEMINI_API_KEY` |
 | **Model ID 문서** | [Gemini API Models](https://ai.google.dev/gemini-api/docs/models) |
-| **env 변수** | `GEMINI_MODEL` — 문서에 나온 model id를 **그대로** 입력 (예: `gemini-2.0-flash`) |
+| **env 변수** | `GEMINI_MODEL` — 문서에 나온 model id를 **그대로** 입력 |
 
 새 모델이 출시되면 코드 수정 없이 문서의 model id만 바꿔 사용할 수 있습니다.
 
@@ -51,7 +51,7 @@ curl http://localhost:8000/health
 |------|------|
 | **API 키 발급** | [OpenAI Platform](https://platform.openai.com/api-keys) → Create key → `OPENAI_API_KEY` |
 | **Model ID 문서** | [OpenAI Models](https://platform.openai.com/docs/models) |
-| **env 변수** | `OPENAI_MODEL` — 문서에 나온 model id를 **그대로** 입력 (예: `gpt-4o-mini`) |
+| **env 변수** | `OPENAI_MODEL` — 문서에 나온 model id를 **그대로** 입력 |
 
 ---
 
