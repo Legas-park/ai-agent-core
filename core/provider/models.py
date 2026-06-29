@@ -1,19 +1,14 @@
 """
 LLM 공급자 메타데이터.
 
-모델 ID는 공급자 문서에 따라 사용자가 직접 입력합니다 (하드코딩 카탈로그 없음).
+모델 ID·API 키는 사용자가 .env 또는 Setup API로 직접 입력합니다.
+코어는 특정 모델명을 하드코딩하지 않습니다.
 """
 from typing import Dict, Literal
 
 LLMProviderName = Literal["gemini", "openai"]
 
-# .env 기본값 제안용 (카탈로그·허용 목록 아님)
-LLM_DEFAULT_MODELS: Dict[LLMProviderName, str] = {
-    "gemini": "gemini-2.0-flash",
-    "openai": "gpt-4o-mini",
-}
-
-# 공급자별 model id 참고 문서
+# 공급자별 model id 참고 문서 (목록·추천 모델 아님)
 LLM_MODEL_DOC_URLS: Dict[LLMProviderName, str] = {
     "gemini": "https://ai.google.dev/gemini-api/docs/models",
     "openai": "https://platform.openai.com/docs/models",

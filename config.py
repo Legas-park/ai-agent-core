@@ -3,8 +3,6 @@ from typing import Literal
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from core.provider.models import LLM_DEFAULT_MODELS
-
 
 class Settings(BaseSettings):
     app_name: str = "AI Agent Core"
@@ -31,8 +29,8 @@ class Settings(BaseSettings):
     default_llm_provider: Literal["gemini", "openai"] = "gemini"
     gemini_api_key: str = ""
     openai_api_key: str = ""
-    gemini_model: str = LLM_DEFAULT_MODELS["gemini"]
-    openai_model: str = LLM_DEFAULT_MODELS["openai"]
+    gemini_model: str = ""
+    openai_model: str = ""
 
     plugins_dir: str = "services/plugins"
 
