@@ -17,6 +17,7 @@ ENV/
 # Logs & runtime
 logs/
 *.log
+.ngrok/
 
 # Test & coverage
 .pytest_cache/

@@ -19,6 +19,8 @@
 - LLM API 키 1개 (Gemini / Anthropic / OpenAI 등)
 - 공개 HTTPS URL용 **ngrok** 또는 **cloudflared** (아래 Step 3)
 
+> **본 repo를 지저분하게 하지 않으려면** [e2e-sandbox.md](./e2e-sandbox.md) 방식(별도 sandbox repo)을 권장합니다.
+
 ---
 
 ## Step 1 — `.env` 작성

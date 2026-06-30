@@ -165,6 +165,7 @@ pytest tests/ -v
 | [SECURITY.md](SECURITY.md) | 보안·시크릿 |
 | [plugin-boundary.md](docs/architecture/plugin-boundary.md) | 코어/플러그인 경계 |
 | [github-personal-e2e.md](docs/setup/github-personal-e2e.md) | GitHub 개인 E1 연동 |
+| [e2e-sandbox.md](docs/setup/e2e-sandbox.md) | E1 sandbox (본 repo 분리) |
 
 ---
 
