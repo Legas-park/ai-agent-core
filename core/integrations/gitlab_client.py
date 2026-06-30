@@ -118,6 +118,6 @@ def build_gitlab_client(settings) -> Optional[GitLabClient]:
     url = getattr(settings, "gitlab_url", "")
     token = getattr(settings, "gitlab_token", "")
     if not url or not token:
-        logger.warning("GitLab URL/토큰 미설정: code_review 플러그인은 드라이런(코멘트 미작성)으로 동작합니다.")
+        logger.warning("GitLab URL/토큰 미설정: repository 어댑터 미구성(드라이런).")
         return None
     return GitLabClient(base_url=url, token=token)
