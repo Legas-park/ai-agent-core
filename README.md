@@ -163,6 +163,8 @@ pytest tests/ -v
 | [implementation_plan.md](implementation_plan.md) | 설계 배경 |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | 기여 방법 |
 | [SECURITY.md](SECURITY.md) | 보안·시크릿 |
+| [plugin-boundary.md](docs/architecture/plugin-boundary.md) | 코어/플러그인 경계 |
+| [github-personal-e2e.md](docs/setup/github-personal-e2e.md) | GitHub 개인 E1 연동 |
 
 ---
 
