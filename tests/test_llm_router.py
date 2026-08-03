@@ -47,6 +47,7 @@ def test_local_llm_configured_without_api_key():
 def test_local_llm_requires_base_url():
     settings = Settings(
         default_llm_provider="local",
+        local_llm_base_url="",
         local_llm_model="qwen3.5",
     )
     status = check_llm_config(settings)
@@ -119,3 +120,35 @@ async def test_openai_compatible_local_endpoint():
     assert result == "local response"
     assert mock_post.call_args.kwargs["json"]["model"] == "qwen3.5"
     assert "Authorization" not in mock_post.call_args.kwargs["headers"]
+    assert mock_post.call_args.args[0].endswith("/v1/chat/completions")
+
+
+def test_openai_compatible_zai_v4_endpoint():
+    """Z.ai GLM 등 /v4 base URL은 /v1을 덧붙이지 않습니다."""
+    provider = OpenAICompatibleProvider(
+        api_key="test-key",
+        model="glm-5.2",
+        base_url="https://api.z.ai/api/paas/v4",
+        provider_name="local",
+    )
+    assert provider._endpoint == "https://api.z.ai/api/paas/v4/chat/completions"
+
+
+@pytest.mark.asyncio
+async def test_openai_compatible_disable_thinking_body():
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "choices": [{"message": {"content": '{"ok":true}'}, "finish_reason": "stop"}],
+    }
+    provider = OpenAICompatibleProvider(
+        api_key="k",
+        model="glm-5.2",
+        base_url="https://api.z.ai/api/coding/paas/v4",
+        provider_name="local",
+        disable_thinking=True,
+    )
+    with patch("core.provider.llm.requests.post", return_value=mock_resp) as mock_post:
+        result = await provider.complete("x")
+    assert result == '{"ok":true}'
+    assert mock_post.call_args.kwargs["json"]["thinking"] == {"type": "disabled"}
