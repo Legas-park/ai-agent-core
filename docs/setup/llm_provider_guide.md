@@ -86,15 +86,20 @@ OpenAI Chat Completions 호환 엔드포인트면 로컬·클라우드 모두 `l
 
 #### Z.ai GLM-5.2 예시
 
+**Coding Plan 키** (에이전트/코딩 플랜으로 발급):
+
 ```env
 DEFAULT_LLM_PROVIDER=local
-LOCAL_LLM_BASE_URL=https://api.z.ai/api/paas/v4
+LOCAL_LLM_BASE_URL=https://api.z.ai/api/coding/paas/v4
 LOCAL_LLM_MODEL=glm-5.2
-LOCAL_LLM_API_KEY=<Z.ai API key>
+LOCAL_LLM_API_KEY=<Z.ai Coding Plan key>
+LOCAL_LLM_DISABLE_THINKING=true
 ```
 
-Coding Plan 전용 엔드포인트를 쓰는 경우 base URL을  
-`https://api.z.ai/api/coding/paas/v4` 로 바꿀 수 있습니다.
+일반 Pay-as-you-go 키면 base URL을 `https://api.z.ai/api/paas/v4` 로 사용합니다.  
+Coding Plan 키로 일반 `paas/v4`를 치면 `1113 Insufficient balance` 가 날 수 있습니다.
+
+`LOCAL_LLM_DISABLE_THINKING=true` 는 GLM reasoning이 `content`를 비우는 문제를 막기 위한 설정입니다 (JSON 리뷰에 권장).
 
 ```bash
 # Ollama 예시

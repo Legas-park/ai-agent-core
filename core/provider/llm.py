@@ -154,6 +154,7 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         *,
         provider_name: str = "openai_compatible",
         timeout: int = 60,
+        disable_thinking: bool = False,
     ):
         if not model or not model.strip():
             raise ValueError("OpenAICompatibleProvider 초기화에 model id가 필요합니다.")
@@ -163,6 +164,7 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         self.model = model.strip()
         self.name = provider_name
         self.timeout = timeout
+        self.disable_thinking = disable_thinking
         self._endpoint = self._resolve_chat_completions_url(base_url)
 
     @staticmethod
@@ -206,15 +208,20 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
+        body: Dict[str, Any] = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+        if self.disable_thinking:
+            # Z.ai GLM 등 — reasoning에 토큰을 쓰다 content가 비는 경우 방지
+            body["thinking"] = {"type": "disabled"}
+
         resp = requests.post(
             self._endpoint,
             headers=headers,
-            json={
-                "model": self.model,
-                "messages": messages,
-                "temperature": temperature,
-                "max_tokens": max_tokens,
-            },
+            json=body,
             timeout=self.timeout,
         )
         label = self.name
@@ -225,8 +232,17 @@ class OpenAICompatibleProvider(BaseLLMProvider):
 
         data = resp.json()
         try:
-            return data["choices"][0]["message"]["content"]
-        except (KeyError, IndexError) as exc:
+            message = data["choices"][0]["message"]
+            content = message.get("content") or ""
+            if isinstance(content, str) and content.strip():
+                return content
+            raise LLMError(
+                f"{label} 응답 content가 비어 있습니다. "
+                f"(finish_reason={data['choices'][0].get('finish_reason')}, "
+                f"reasoning={'yes' if message.get('reasoning_content') else 'no'}) "
+                "LOCAL_LLM_DISABLE_THINKING=true 또는 max_tokens 증가를 검토하세요."
+            )
+        except (KeyError, IndexError, TypeError) as exc:
             raise LLMError(
                 f"{label} 응답 형식이 예상과 다릅니다: {json.dumps(data)[:300]}"
             ) from exc
@@ -398,13 +414,18 @@ def build_all_providers_from_settings(settings) -> Dict[str, BaseLLMProvider]:
     local_base = getattr(settings, "local_llm_base_url", "").strip()
     local_model = getattr(settings, "local_llm_model", "").strip()
     if local_base and local_model:
+        disable_thinking = bool(getattr(settings, "local_llm_disable_thinking", False))
         providers["local"] = OpenAICompatibleProvider(
             api_key=getattr(settings, "local_llm_api_key", ""),
             model=local_model,
             base_url=local_base,
             provider_name="local",
+            disable_thinking=disable_thinking,
         )
-        logger.info(f"Local LLM 프로바이더 등록 (model={local_model}, base={local_base})")
+        logger.info(
+            f"Local LLM 프로바이더 등록 (model={local_model}, base={local_base}, "
+            f"disable_thinking={disable_thinking})"
+        )
 
     return providers
 

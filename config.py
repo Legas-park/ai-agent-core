@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     local_llm_base_url: str = ""
     local_llm_api_key: str = ""
     local_llm_model: str = ""
+    # GLM 등 reasoning 모델에서 JSON/짧은 응답이 비지 않도록 thinking 비활성
+    local_llm_disable_thinking: bool = False
 
     plugins_dir: str = "services/plugins"
 

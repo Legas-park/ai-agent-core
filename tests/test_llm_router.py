@@ -132,3 +132,23 @@ def test_openai_compatible_zai_v4_endpoint():
         provider_name="local",
     )
     assert provider._endpoint == "https://api.z.ai/api/paas/v4/chat/completions"
+
+
+@pytest.mark.asyncio
+async def test_openai_compatible_disable_thinking_body():
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "choices": [{"message": {"content": '{"ok":true}'}, "finish_reason": "stop"}],
+    }
+    provider = OpenAICompatibleProvider(
+        api_key="k",
+        model="glm-5.2",
+        base_url="https://api.z.ai/api/coding/paas/v4",
+        provider_name="local",
+        disable_thinking=True,
+    )
+    with patch("core.provider.llm.requests.post", return_value=mock_resp) as mock_post:
+        result = await provider.complete("x")
+    assert result == '{"ok":true}'
+    assert mock_post.call_args.kwargs["json"]["thinking"] == {"type": "disabled"}
