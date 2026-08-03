@@ -47,6 +47,7 @@ def test_local_llm_configured_without_api_key():
 def test_local_llm_requires_base_url():
     settings = Settings(
         default_llm_provider="local",
+        local_llm_base_url="",
         local_llm_model="qwen3.5",
     )
     status = check_llm_config(settings)
@@ -119,3 +120,15 @@ async def test_openai_compatible_local_endpoint():
     assert result == "local response"
     assert mock_post.call_args.kwargs["json"]["model"] == "qwen3.5"
     assert "Authorization" not in mock_post.call_args.kwargs["headers"]
+    assert mock_post.call_args.args[0].endswith("/v1/chat/completions")
+
+
+def test_openai_compatible_zai_v4_endpoint():
+    """Z.ai GLM 등 /v4 base URL은 /v1을 덧붙이지 않습니다."""
+    provider = OpenAICompatibleProvider(
+        api_key="test-key",
+        model="glm-5.2",
+        base_url="https://api.z.ai/api/paas/v4",
+        provider_name="local",
+    )
+    assert provider._endpoint == "https://api.z.ai/api/paas/v4/chat/completions"

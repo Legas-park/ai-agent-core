@@ -1,6 +1,7 @@
 import abc
 import asyncio
 import json
+import re
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -162,11 +163,23 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         self.model = model.strip()
         self.name = provider_name
         self.timeout = timeout
+        self._endpoint = self._resolve_chat_completions_url(base_url)
+
+    @staticmethod
+    def _resolve_chat_completions_url(base_url: str) -> str:
+        """
+        OpenAI 호환 base URL → chat/completions 엔드포인트.
+
+        - .../v1, .../v4 (Z.ai GLM 등) → .../chat/completions
+        - 이미 .../chat/completions 이면 그대로
+        - 그 외 → .../v1/chat/completions
+        """
         normalized = base_url.strip().rstrip("/")
-        if normalized.endswith("/v1"):
-            self._endpoint = f"{normalized}/chat/completions"
-        else:
-            self._endpoint = f"{normalized}/v1/chat/completions"
+        if normalized.endswith("/chat/completions"):
+            return normalized
+        if re.search(r"/v\d+$", normalized):
+            return f"{normalized}/chat/completions"
+        return f"{normalized}/v1/chat/completions"
 
     @async_retry(max_attempts=3, retry_on=(requests.RequestException, LLMError))
     async def complete(

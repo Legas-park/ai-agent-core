@@ -72,17 +72,29 @@ curl http://localhost:8000/health
 | **Model ID 문서** | [Claude Models Overview](https://docs.anthropic.com/en/docs/about-claude/models/overview) |
 | **env 변수** | `ANTHROPIC_MODEL` — 문서에 나온 model id를 **그대로** 입력 |
 
-### Local LLM — Ollama / vLLM / LM Studio (`DEFAULT_LLM_PROVIDER=local`)
+### Local / OpenAI 호환 — Ollama, Z.ai GLM 등 (`DEFAULT_LLM_PROVIDER=local`)
 
-로컬에서 돌리는 **Qwen, Llama, Mistral** 등 OpenAI 호환 API 서버를 연결합니다.
+OpenAI Chat Completions 호환 엔드포인트면 로컬·클라우드 모두 `local` 프로바이더로 연결합니다.
 
 | 항목 | 내용 |
 |------|------|
-| **대표 도구** | [Ollama](https://ollama.com), vLLM, LM Studio |
-| **Model ID** | `ollama pull qwen3.5` 후 `ollama list`에 나온 이름 그대로 입력 |
-| **Base URL** | Ollama 기본: `http://localhost:11434/v1` |
-| **API 키** | Ollama는 보통 **불필요** (`LOCAL_LLM_API_KEY` 비워두기) |
+| **대표 도구** | [Ollama](https://ollama.com), vLLM, LM Studio, [Z.ai GLM](https://docs.z.ai) |
+| **Model ID** | 공급자 문서의 model id (`qwen3.5`, `glm-5.2` 등) |
+| **Base URL** | Ollama: `http://localhost:11434/v1` / Z.ai: `https://api.z.ai/api/paas/v4` |
+| **API 키** | Ollama는 보통 불필요. Z.ai는 `LOCAL_LLM_API_KEY` 필수 |
 | **env 변수** | `LOCAL_LLM_BASE_URL`, `LOCAL_LLM_MODEL` (필수) |
+
+#### Z.ai GLM-5.2 예시
+
+```env
+DEFAULT_LLM_PROVIDER=local
+LOCAL_LLM_BASE_URL=https://api.z.ai/api/paas/v4
+LOCAL_LLM_MODEL=glm-5.2
+LOCAL_LLM_API_KEY=<Z.ai API key>
+```
+
+Coding Plan 전용 엔드포인트를 쓰는 경우 base URL을  
+`https://api.z.ai/api/coding/paas/v4` 로 바꿀 수 있습니다.
 
 ```bash
 # Ollama 예시
